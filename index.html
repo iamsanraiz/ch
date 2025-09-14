@@ -5,71 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blogger Chat App</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f0f2f5;
-    }
-    header {
-      background: #075e54;
-      color: white; padding: 10px;
-      text-align: center;
-    }
-    #container {
-      display: flex;
-      height: 90vh;
-    }
-    #users {
-      width: 25%; background: #fff;
-      border-right: 1px solid #ddd;
-      overflow-y: auto;
-    }
-    #chat {
-      width: 75%; display: flex; flex-direction: column;
-    }
-    #messages {
-      flex: 1; padding: 10px;
-      overflow-y: auto; background: #e5ddd5;
-    }
-    .msg {
-      margin: 5px 0; padding: 8px;
-      border-radius: 8px;
-      max-width: 70%;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+    header { background: #075e54; color: white; padding: 10px; text-align: center; }
+    #container { display: flex; height: 90vh; }
+    #users { width: 25%; background: #fff; border-right: 1px solid #ddd; overflow-y: auto; }
+    #chat { width: 75%; display: flex; flex-direction: column; }
+    #messages { flex: 1; padding: 10px; overflow-y: auto; background: #e5ddd5; }
+    .msg { margin: 5px 0; padding: 8px; border-radius: 8px; max-width: 70%; }
     .me { background: #dcf8c6; margin-left: auto; }
     .other { background: #fff; margin-right: auto; }
-    #inputBox {
-      display: flex;
-      padding: 10px;
-      background: #f0f0f0;
-    }
-    #inputBox input {
-      flex: 1; padding: 8px;
-      border: 1px solid #ccc; border-radius: 5px;
-    }
-    #inputBox button {
-      margin-left: 5px; padding: 8px 12px;
-      background: #128c7e; color: white;
-      border: none; border-radius: 5px;
-    }
-    #profile {
-      padding: 10px; border-bottom: 1px solid #ddd;
-      text-align: center;
-    }
-    #profile img {
-      width: 60px; height: 60px; border-radius: 50%;
-    }
-    .list-section {
-      padding: 5px; font-weight: bold;
-      background: #f9f9f9; border-top: 1px solid #ddd;
-    }
-    .clickable {
-      cursor: pointer;
-      padding: 5px 10px;
-    }
-    .clickable:hover {
-      background: #f0f0f0;
-    }
+    #inputBox { display: flex; padding: 10px; background: #f0f0f0; }
+    #inputBox input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+    #inputBox button { margin-left: 5px; padding: 8px 12px; background: #128c7e; color: white; border: none; border-radius: 5px; }
+    #profile { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    #profile img { width: 60px; height: 60px; border-radius: 50%; }
+    .list-section { padding: 5px; font-weight: bold; background: #f9f9f9; border-top: 1px solid #ddd; }
+    .clickable { cursor: pointer; padding: 5px 10px; }
+    .clickable:hover { background: #f0f0f0; }
   </style>
 </head>
 <body>
@@ -124,7 +76,7 @@
   const auth = firebase.auth();
 
   let currentUser = null;
-  let currentChat = "global"; // default chat room
+  let currentChat = "global"; // default
 
   // ---------- AUTH ----------
   function loginGoogle() {
@@ -143,7 +95,7 @@
         name: user.displayName,
         email: user.email,
         photo: user.photoURL
-      });
+      }, { merge: true });
       loadUsers();
       loadGroups();
       loadMessages(currentChat);
@@ -175,18 +127,22 @@
       db.collection("groups").add({
         name: gName,
         createdBy: currentUser.uid,
+        members: [currentUser.uid], // creator is first member
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       document.getElementById("groupName").value = "";
     }
   }
+
   function loadGroups() {
-    db.collection("groups").orderBy("createdAt","asc").onSnapshot(snapshot => {
+    db.collection("groups").onSnapshot(snapshot => {
       const groupList = document.getElementById("groupList");
       groupList.innerHTML = `<div class="clickable" onclick="openChat('global','Global Chat')">🌍 Global Chat</div>`;
       snapshot.forEach(doc => {
         let group = doc.data();
-        groupList.innerHTML += `<div class="clickable" onclick="openChat('group-${doc.id}','${group.name}')">👥 ${group.name}</div>`;
+        if (currentUser && group.members && group.members.includes(currentUser.uid)) {
+          groupList.innerHTML += `<div class="clickable" onclick="openChat('group-${doc.id}','${group.name}')">👥 ${group.name}</div>`;
+        }
       });
     });
   }
