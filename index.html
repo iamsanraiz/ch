@@ -12,9 +12,12 @@
       border-right:1px solid #ddd; display:flex; flex-direction:column;
     }
     #sidebar h2 { margin:0; padding:10px; background:#075e54; color:#fff; }
-    #userList { flex:1; overflow-y:auto; padding:10px; }
-    .userItem { padding:8px; cursor:pointer; border-bottom:1px solid #eee; display:flex; align-items:center; }
-    .userItem img { width:30px; height:30px; border-radius:50%; margin-right:10px; }
+    #userList, #groupList { flex:1; overflow-y:auto; padding:10px; }
+    .userItem, .groupItem {
+      padding:8px; cursor:pointer; border-bottom:1px solid #eee;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .userItem img, .groupItem img { width:30px; height:30px; border-radius:50%; margin-right:10px; }
     #chatArea { flex:1; display:flex; flex-direction:column; }
     #chatHeader { background:#075e54; color:#fff; padding:10px; }
     #messages { flex:1; padding:10px; overflow-y:auto; background:#e5ddd5; }
@@ -29,6 +32,11 @@
     #logoutBtn { background:#ff3b30 !important; }
     #profileEdit { padding:10px; border-top:1px solid #ddd; }
     #profileEdit input { width:90%; padding:5px; margin:5px 0; }
+    #groupCreate { padding:10px; border-top:1px solid #ddd; }
+    #groupCreate input { width:90%; padding:5px; margin:5px 0; }
+    .btnSmall { padding:3px 6px; border:none; border-radius:3px; cursor:pointer; margin-left:5px; }
+    .approve { background:#25d366; color:#fff; }
+    .reject { background:#ff3b30; color:#fff; }
   </style>
 </head>
 <body>
@@ -46,8 +54,13 @@
     </div>
     <h3 style="margin:10px;">Users</h3>
     <div id="userList"></div>
-    <h3 style="margin:10px;">Group Chat</h3>
-    <div class="userItem" onclick="openChat('group','Group Chat')"># Group Room</div>
+    <h3 style="margin:10px;">Groups</h3>
+    <div id="groupList"></div>
+    <div id="groupCreate" style="display:none;">
+      <input type="text" id="groupName" placeholder="Group Name">
+      <input type="text" id="groupDesc" placeholder="Group Description">
+      <button onclick="createGroup()">Create Group</button>
+    </div>
   </div>
   <div id="chatArea">
     <div id="chatHeader">Select a chat</div>
@@ -79,22 +92,24 @@
   const auth = firebase.auth();
 
   let currentUser = null;
-  let activeChat = null; // {id, type}
+  let activeChat = null;
 
   // Auth state
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
       document.getElementById("profileEdit").style.display = "block";
+      document.getElementById("groupCreate").style.display = "block";
       saveUserToDB(user);
       loadUsers();
+      loadGroups();
     } else {
       currentUser = null;
       document.getElementById("profileEdit").style.display = "none";
+      document.getElementById("groupCreate").style.display = "none";
     }
   });
 
-  // Google Login
   function loginGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider);
@@ -135,15 +150,89 @@
         const div = document.createElement("div");
         div.className = "userItem";
         div.innerHTML = `<img src="${u.photoURL || 'https://via.placeholder.com/30'}"> ${u.displayName || u.email}`;
-        div.onclick = () => openChat(u.uid, u.displayName);
+        div.onclick = () => openChat(u.uid, u.displayName, false);
         list.appendChild(div);
       });
     });
   }
 
+  // Load groups
+  function loadGroups() {
+    db.collection("groups").onSnapshot(snapshot => {
+      const list = document.getElementById("groupList");
+      list.innerHTML = "";
+      snapshot.forEach(doc => {
+        const g = doc.data();
+        const div = document.createElement("div");
+        div.className = "groupItem";
+        let actions = "";
+        if (g.members && g.members.includes(currentUser.uid)) {
+          actions = "<span>✔ Member</span>";
+          div.onclick = () => openChat(g.id, g.name, true);
+        } else if (g.requests && g.requests.includes(currentUser.uid)) {
+          actions = "<span>⏳ Pending</span>";
+        } else if (g.adminId === currentUser.uid) {
+          actions = `<span>👑 Admin</span>`;
+          if (g.requests) {
+            g.requests.forEach(r => {
+              actions += `<br><button class='btnSmall approve' onclick="approveMember('${g.id}','${r}')">Approve</button>
+                          <button class='btnSmall reject' onclick="rejectMember('${g.id}','${r}')">Reject</button>`;
+            });
+          }
+          div.onclick = () => openChat(g.id, g.name, true);
+        } else {
+          actions = `<button class='btnSmall' onclick="requestJoin('${g.id}')">Join</button>`;
+        }
+        div.innerHTML = `<span><img src="https://via.placeholder.com/30"> ${g.name}</span> ${actions}`;
+        list.appendChild(div);
+      });
+    });
+  }
+
+  // Create group
+  function createGroup() {
+    if (!currentUser) return;
+    const name = document.getElementById("groupName").value;
+    const desc = document.getElementById("groupDesc").value;
+    if (!name) return alert("Enter group name");
+    const id = db.collection("groups").doc().id;
+    db.collection("groups").doc(id).set({
+      id:id,
+      name:name,
+      description:desc,
+      adminId: currentUser.uid,
+      members:[currentUser.uid],
+      requests:[]
+    });
+    document.getElementById("groupName").value="";
+    document.getElementById("groupDesc").value="";
+  }
+
+  // Request join
+  function requestJoin(gid) {
+    db.collection("groups").doc(gid).update({
+      requests: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+    });
+  }
+
+  // Approve member
+  function approveMember(gid, uid) {
+    db.collection("groups").doc(gid).update({
+      members: firebase.firestore.FieldValue.arrayUnion(uid),
+      requests: firebase.firestore.FieldValue.arrayRemove(uid)
+    });
+  }
+
+  // Reject member
+  function rejectMember(gid, uid) {
+    db.collection("groups").doc(gid).update({
+      requests: firebase.firestore.FieldValue.arrayRemove(uid)
+    });
+  }
+
   // Open chat
-  function openChat(id, name) {
-    activeChat = {id:id, name:name};
+  function openChat(id, name, isGroup) {
+    activeChat = {id:id, name:name, isGroup:isGroup};
     document.getElementById("chatHeader").innerText = name;
     loadMessages();
   }
@@ -152,12 +241,11 @@
   function sendMessage() {
     const text = document.getElementById("messageInput").value;
     if (!text.trim() || !currentUser || !activeChat) return;
-
     db.collection("messages").add({
       chatId: activeChat.id,
+      isGroup: activeChat.isGroup,
       from: currentUser.uid,
       fromName: currentUser.displayName || currentUser.email,
-      fromPhoto: currentUser.photoURL || "",
       text: text,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
