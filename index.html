@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blogger WhatsApp Clone</title>
+  <title>WhatsApp Clone - Private Chat</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,13 +15,47 @@
       align-items: center;
       min-height: 100vh;
     }
-    #chatContainer {
+    #app {
       width: 100%;
-      max-width: 420px;
+      max-width: 800px;
+      height: 600px;
+      display: flex;
       background: #fff;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #userList {
+      width: 30%;
+      border-right: 1px solid #ddd;
+      background: #ededed;
+      overflow-y: auto;
+    }
+    #userList h3 {
+      margin: 0;
+      padding: 10px;
+      background: #075e54;
+      color: #fff;
+      text-align: center;
+    }
+    .user {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #ddd;
+    }
+    .user img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    .user:hover {
+      background: #d3d3d3;
+    }
+    #chatArea {
+      flex: 1;
       display: flex;
       flex-direction: column;
     }
@@ -33,22 +67,20 @@
     }
     #messages {
       flex: 1;
-      height: 400px;
-      overflow-y: auto;
       padding: 10px;
+      overflow-y: auto;
       background: #e5ddd5;
     }
     .msg {
       display: flex;
-      align-items: flex-start;
-      margin: 8px 0;
-      clear: both;
+      margin: 5px 0;
+      align-items: flex-end;
     }
     .msg img {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      margin-right: 8px;
+      margin: 0 5px;
     }
     .bubble {
       padding: 8px 12px;
@@ -56,9 +88,12 @@
       max-width: 70%;
       word-wrap: break-word;
     }
+    .me {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
     .me .bubble {
       background: #dcf8c6;
-      margin-left: auto;
     }
     .other .bubble {
       background: #fff;
@@ -102,31 +137,34 @@
 </head>
 <body>
 
-<div id="chatContainer">
-  <div id="chatHeader">
-    <h2>WhatsApp Clone Chat</h2>
-  </div>
-
+<div>
   <div id="authButtons">
     <button onclick="loginGoogle()">Login with Google</button>
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
-
-  <div id="messages"></div>
-
-  <div id="chatInput">
-    <input type="text" id="messageInput" placeholder="Type a message..." />
-    <button onclick="sendMessage()">Send</button>
+  <div id="app" style="display:none;">
+    <div id="userList">
+      <h3>Users</h3>
+      <div id="users"></div>
+    </div>
+    <div id="chatArea">
+      <div id="chatHeader"><span id="chatWith">Select a user</span></div>
+      <div id="messages"></div>
+      <div id="chatInput">
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Firebase SDKs (v8 for Blogger compatibility) -->
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-  // Your Firebase Config
+  // Firebase Config
   const firebaseConfig = {
     apiKey: "AIzaSyBo2LX4YxwdZ6UMoo4TchkzPA5HjkSM7qQ",
     authDomain: "chat-da614.firebaseapp.com",
@@ -137,22 +175,105 @@
     measurementId: "G-VYCPWGX316"
   };
 
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
 
-  const messagesDiv = document.getElementById("messages");
-  const input = document.getElementById("messageInput");
-
   let currentUser = null;
+  let currentChatId = null;
+  let unsubscribeMessages = null;
+
+  const usersDiv = document.getElementById("users");
+  const messagesDiv = document.getElementById("messages");
+  const chatWith = document.getElementById("chatWith");
+  const input = document.getElementById("messageInput");
 
   // Auth state listener
   auth.onAuthStateChanged(user => {
-    currentUser = user;
+    if (user) {
+      currentUser = user;
+      document.getElementById("app").style.display = "flex";
+      saveUser(user);
+      loadUsers();
+    } else {
+      currentUser = null;
+      document.getElementById("app").style.display = "none";
+    }
   });
 
-  // Google Login
+  // Save user in Firestore
+  function saveUser(user) {
+    db.collection("users").doc(user.uid).set({
+      name: user.displayName,
+      email: user.email,
+      photo: user.photoURL
+    }, { merge: true });
+  }
+
+  // Load all users
+  function loadUsers() {
+    db.collection("users").onSnapshot(snapshot => {
+      usersDiv.innerHTML = "";
+      snapshot.forEach(doc => {
+        const u = doc.data();
+        if (currentUser && u.email !== currentUser.email) {
+          usersDiv.innerHTML += `
+            <div class="user" onclick="openChat('${doc.id}','${u.name}','${u.email}','${u.photo}')">
+              <img src="${u.photo}" alt="DP"> ${u.name}
+            </div>`;
+        }
+      });
+    });
+  }
+
+  // Open chat with a user
+  function openChat(uid, name, email, photo) {
+    chatWith.textContent = "Chat with " + name;
+    const myEmail = currentUser.email;
+    currentChatId = myEmail < email ? `${myEmail}_${email}` : `${email}_${myEmail}`;
+
+    if (unsubscribeMessages) unsubscribeMessages();
+
+    unsubscribeMessages = db.collection("chats")
+      .doc(currentChatId).collection("messages")
+      .orderBy("timestamp")
+      .onSnapshot(snapshot => {
+        messagesDiv.innerHTML = "";
+        snapshot.forEach(doc => {
+          const msg = doc.data();
+          const isMe = msg.email === myEmail;
+          const cssClass = isMe ? "me" : "other";
+          const photo = msg.photo || "https://via.placeholder.com/32";
+          messagesDiv.innerHTML += `
+            <div class="msg ${cssClass}">
+              <img src="${photo}" alt="DP">
+              <div class="bubble"><b>${msg.user}</b><br>${msg.text}</div>
+            </div>`;
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
+  }
+
+  // Send message
+  function sendMessage() {
+    if (!currentChatId) {
+      alert("Select a user first!");
+      return;
+    }
+    const text = input.value;
+    if (text.trim() !== "") {
+      db.collection("chats").doc(currentChatId).collection("messages").add({
+        user: currentUser.displayName,
+        email: currentUser.email,
+        photo: currentUser.photoURL,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      input.value = "";
+    }
+  }
+
+  // Login with Google
   function loginGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider);
@@ -162,43 +283,6 @@
   function logout() {
     auth.signOut();
   }
-
-  // Send message
-  function sendMessage() {
-    const text = input.value;
-    if (text.trim() !== "" && currentUser) {
-      db.collection("messages").add({
-        user: currentUser.displayName,
-        email: currentUser.email,
-        photo: currentUser.photoURL,
-        text: text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      input.value = "";
-    } else {
-      alert("Please login to send messages!");
-    }
-  }
-
-  // Realtime listener
-  db.collection("messages").orderBy("timestamp").onSnapshot(snapshot => {
-    messagesDiv.innerHTML = "";
-    snapshot.forEach(doc => {
-      const msg = doc.data();
-      const isMe = currentUser && msg.email === currentUser.email;
-      const cssClass = isMe ? "me" : "other";
-      const photo = msg.photo || "https://via.placeholder.com/32"; // fallback
-      messagesDiv.innerHTML += `
-        <div class="msg ${cssClass}">
-          ${!isMe ? `<img src="${photo}" alt="DP">` : ""}
-          <div class="bubble">
-            <b>${msg.user}</b><br>${msg.text}
-          </div>
-          ${isMe ? `<img src="${photo}" alt="DP">` : ""}
-        </div>`;
-    });
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
 </script>
 
 </body>
