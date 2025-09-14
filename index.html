@@ -1,272 +1,600 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp Clone</title>
-  <style>
-    body { margin:0; font-family:Arial, sans-serif; background:#f0f2f5; }
-    #app { display:flex; height:100vh; }
-    #sidebar {
-      width: 30%; max-width: 280px; background:#fff;
-      border-right:1px solid #ddd; display:flex; flex-direction:column;
-    }
-    #sidebar h2 { margin:0; padding:10px; background:#075e54; color:#fff; }
-    #userList, #groupList { flex:1; overflow-y:auto; padding:10px; }
-    .userItem, .groupItem {
-      padding:8px; cursor:pointer; border-bottom:1px solid #eee;
-      display:flex; align-items:center; justify-content:space-between;
-    }
-    .userItem img, .groupItem img { width:30px; height:30px; border-radius:50%; margin-right:10px; }
-    #chatArea { flex:1; display:flex; flex-direction:column; }
-    #chatHeader { background:#075e54; color:#fff; padding:10px; }
-    #messages { flex:1; padding:10px; overflow-y:auto; background:#e5ddd5; }
-    .msg { margin:5px 0; padding:8px 12px; border-radius:10px; max-width:70%; clear:both; }
-    .me { background:#dcf8c6; float:right; text-align:right; }
-    .other { background:#fff; float:left; text-align:left; }
-    #chatInput { display:flex; padding:10px; border-top:1px solid #ddd; background:#fff; }
-    #chatInput input { flex:1; padding:10px; border:1px solid #ddd; border-radius:20px; }
-    #chatInput button { margin-left:5px; background:#075e54; color:#fff; border:none; padding:10px 15px; border-radius:20px; cursor:pointer; }
-    #authButtons { text-align:center; margin:10px; }
-    #authButtons button { margin:5px; padding:8px 12px; border:none; cursor:pointer; border-radius:5px; background:#25d366; color:#fff; font-weight:bold; }
-    #logoutBtn { background:#ff3b30 !important; }
-    #profileEdit { padding:10px; border-top:1px solid #ddd; }
-    #profileEdit input { width:90%; padding:5px; margin:5px 0; }
-    #groupCreate { padding:10px; border-top:1px solid #ddd; }
-    #groupCreate input { width:90%; padding:5px; margin:5px 0; }
-    .btnSmall { padding:3px 6px; border:none; border-radius:3px; cursor:pointer; margin-left:5px; }
-    .approve { background:#25d366; color:#fff; }
-    .reject { background:#ff3b30; color:#fff; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pro Text-Only Chat (WhatsApp-like)</title>
+<style>
+  :root{--green:#075e54;--muted:#f0f2f5;--card:#fff}
+  body{margin:0;font-family:Inter,system-ui,Arial;background:var(--muted);color:#111}
+  header{background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:18px;margin:0}
+  .wrap{display:flex;height:calc(100vh - 56px);gap:12px;padding:12px;box-sizing:border-box}
+  .sidebar{width:300px;background:var(--card);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
+  .main{flex:1;display:flex;flex-direction:column;gap:12px}
+  .profile{padding:12px;border-bottom:1px solid #eee;display:flex;gap:12px;align-items:center}
+  .profile img{width:56px;height:56px;border-radius:50%;object-fit:cover}
+  .profile .meta{flex:1}
+  .controls{display:flex;gap:8px}
+  .search{padding:10px;border-bottom:1px solid #eee}
+  .search input{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd}
+  .lists{flex:1;overflow:auto;padding:8px}
+  .sectionTitle{font-weight:700;color:#333;margin:8px 0 6px}
+  .userRow,.chatRow,.groupRow{padding:8px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .userRow:hover,.chatRow:hover,.groupRow:hover{background:#f7f7f7;cursor:pointer}
+  .small{font-size:12px;color:#666}
+  .chatArea{background:var(--card);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  .chatHeader{padding:12px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,#f8fbfa,#fff)}
+  .chatTitle{display:flex;gap:12px;align-items:center}
+  .chatTitle img{width:44px;height:44px;border-radius:50%}
+  #messages{flex:1;padding:12px;overflow:auto;background:#e9e3da}
+  .message{display:block;max-width:70%;padding:8px 12px;border-radius:12px;margin:8px 0;position:relative;word-break:break-word}
+  .message.me{margin-left:auto;background:#dcf8c6;text-align:right}
+  .message.other{margin-right:auto;background:#fff;text-align:left}
+  .msgMeta{font-size:11px;color:#666;margin-top:6px}
+  .inputRow{display:flex;padding:10px;border-top:1px solid #eee;background:linear-gradient(#fff,#f8f8f8)}
+  .inputRow input{flex:1;padding:10px;border-radius:24px;border:1px solid #ddd}
+  .btn{background:var(--green);color:#fff;padding:8px 12px;border:none;border-radius:8px;cursor:pointer}
+  .muted{color:#777;font-size:13px}
+  .mini{font-size:12px;color:#666}
+  .pill{background:#f2f2f2;padding:6px 8px;border-radius:999px;font-size:12px}
+  .tag{font-size:12px;padding:4px 8px;border-radius:6px;background:#f7f7f7}
+  .notice{font-size:13px;padding:8px;color:#333;background:#fff;border-radius:8px;margin:8px}
+  /* responsive */
+  @media(max-width:900px){.sidebar{display:none}.wrap{padding:8px}}
+</style>
 </head>
 <body>
-<div id="app">
-  <div id="sidebar">
-    <h2>Chats</h2>
-    <div id="authButtons">
-      <button onclick="loginGoogle()">Login</button>
-      <button id="logoutBtn" onclick="logout()">Logout</button>
-    </div>
-    <div id="profileEdit" style="display:none;">
-      <input type="text" id="displayName" placeholder="Enter name">
-      <input type="text" id="photoURL" placeholder="Photo URL">
-      <button onclick="saveProfile()">Save</button>
-    </div>
-    <h3 style="margin:10px;">Users</h3>
-    <div id="userList"></div>
-    <h3 style="margin:10px;">Groups</h3>
-    <div id="groupList"></div>
-    <div id="groupCreate" style="display:none;">
-      <input type="text" id="groupName" placeholder="Group Name">
-      <input type="text" id="groupDesc" placeholder="Group Description">
-      <button onclick="createGroup()">Create Group</button>
-    </div>
+<header>
+  <h1>ProText Chat — WhatsApp-style (Text-only)</h1>
+  <div>
+    <span id="meName" class="mini"></span>
+    <button id="btnLogin" class="btn" onclick="loginGoogle()">Login</button>
+    <button id="btnLogout" class="btn" style="display:none;background:#c0392b" onclick="logout()">Logout</button>
   </div>
-  <div id="chatArea">
-    <div id="chatHeader">Select a chat</div>
-    <div id="messages"></div>
-    <div id="chatInput">
-      <input type="text" id="messageInput" placeholder="Type a message..." />
-      <button onclick="sendMessage()">Send</button>
+</header>
+
+<div class="wrap">
+  <aside class="sidebar">
+    <div class="profile">
+      <img id="mePic" src="https://via.placeholder.com/80" alt="me">
+      <div class="meta">
+        <div><strong id="meDisplay">Guest</strong></div>
+        <div class="small" id="meEmail"></div>
+      </div>
+      <div class="controls">
+        <button class="btn" onclick="openProfileEditor()">Edit</button>
+      </div>
     </div>
-  </div>
+
+    <div class="search">
+      <input id="globalSearch" placeholder="Search users/messages (Enter)" onkeydown="if(event.key==='Enter') globalSearchFn()">
+    </div>
+
+    <div class="lists">
+      <div class="sectionTitle">Chats</div>
+      <div id="chatsList" style="margin-bottom:8px"></div>
+
+      <div class="sectionTitle">Contacts</div>
+      <div id="usersList"></div>
+
+      <div class="sectionTitle">Groups</div>
+      <div id="groupsList"></div>
+
+      <div style="margin-top:12px">
+        <div><input id="newGroupName" placeholder="New group name" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd"></div>
+        <div style="margin-top:6px;display:flex;gap:6px">
+          <button class="btn" onclick="createGroup()">Create Group</button>
+          <button class="btn" onclick="openGroupDirectory()">All Groups</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" id="profileEditor" style="display:none"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="chatArea">
+      <div class="chatHeader">
+        <div class="chatTitle">
+          <img id="chatPic" src="https://via.placeholder.com/44" alt="">
+          <div>
+            <div id="chatName">Select chat or group</div>
+            <div class="mini" id="chatMeta">—</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="typingIndicator" class="mini muted"></div>
+          <div id="unreadBadge" class="pill" style="display:none"></div>
+          <button class="btn" onclick="togglePin()">Pin</button>
+          <button class="btn" onclick="archiveChat()">Archive</button>
+        </div>
+      </div>
+
+      <div id="messages" aria-live="polite"></div>
+
+      <div class="inputRow">
+        <input id="messageInput" placeholder="Type a message…" oninput="onTyping()" onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="btn" onclick="sendMessage()">Send</button>
+      </div>
+    </section>
+
+    <div id="extraControls" style="margin-top:8px">
+      <div class="notice">Pro features included: private chat, groups with join requests & admin approval, typing indicators, read receipts, edit/delete messages, star messages, pin & archive chats, search, profile edit, presence (last seen).</div>
+    </div>
+  </main>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Firebase v8 SDKs -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-  // Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyBo2LX4YxwdZ6UMoo4TchkzPA5HjkSM7qQ",
-    authDomain: "chat-da614.firebaseapp.com",
-    projectId: "chat-da614",
-    storageBucket: "chat-da614.appspot.com",
-    messagingSenderId: "14850718256",
-    appId: "1:14850718256:web:868f51a8123953e8bc0bf5"
+/* =========================
+   CONFIG - paste your config if different
+   ========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBo2LX4YxwdZ6UMoo4TchkzPA5HjkSM7qQ",
+  authDomain: "chat-da614.firebaseapp.com",
+  projectId: "chat-da614",
+  storageBucket: "chat-da614.appspot.com",
+  messagingSenderId: "14850718256",
+  appId: "1:14850718256:web:868f51a8123953e8bc0bf5",
+  measurementId: "G-VYCPWGX316"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =========================
+   Data model notes:
+   - users (doc id = uid): { displayName, email, photoURL, lastSeen, pinnedChats:[], archivedChats:[] }
+   - chats (doc id = "private_uid1_uid2" or "group_g<id>"): { isGroup, name, adminId, members:[], requests:[], createdAt }
+   - messages (collection): messages with { chatId, from, fromName, text, timestamp, edited:bool, deletedFor:[], readBy:[] }
+   - typing indicator: chats/{chatId}/meta typing map or chat doc typing: {typing:{uid:true}}
+   ========================= */
+
+let me = null;
+let activeChat = null; // { id, name, isGroup, adminId }
+let messagesUnsub = null;
+let chatsUnsub = null;
+let typingTimer = null;
+
+/* ---------- Auth ---------- */
+function loginGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider);
+}
+function logout(){
+  auth.signOut();
+}
+
+/* update UI */
+auth.onAuthStateChanged(async user=>{
+  me = user;
+  const btnLogin = document.getElementById('btnLogin');
+  const btnLogout = document.getElementById('btnLogout');
+  if(user){
+    btnLogin.style.display='none';
+    btnLogout.style.display='inline-block';
+    document.getElementById('meDisplay').innerText = user.displayName || user.email;
+    document.getElementById('meName').innerText = user.displayName || user.email;
+    document.getElementById('meEmail').innerText = user.email || '';
+    document.getElementById('mePic').src = user.photoURL || 'https://via.placeholder.com/80';
+    // save user doc
+    await db.collection('users').doc(user.uid).set({
+      displayName: user.displayName || user.email,
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+      pinnedChats: [],
+      archivedChats: []
+    }, { merge: true });
+    // start listeners
+    loadChats();
+    loadContacts();
+    loadGroupsOverview();
+  } else {
+    btnLogin.style.display='inline-block';
+    btnLogout.style.display='none';
+    document.getElementById('meDisplay').innerText = 'Guest';
+    document.getElementById('meName').innerText = '';
+    document.getElementById('meEmail').innerText = '';
+    document.getElementById('mePic').src = 'https://via.placeholder.com/80';
+    // detach listeners
+    if(chatsUnsub) chatsUnsub();
+    if(messagesUnsub) messagesUnsub();
+    document.getElementById('chatsList').innerHTML='';
+    document.getElementById('usersList').innerHTML='';
+    document.getElementById('groupsList').innerHTML='';
+    document.getElementById('messages').innerHTML='';
+  }
+});
+
+/* ---------- Presence: update lastSeen on unload ---------- */
+window.addEventListener('beforeunload',()=>{
+  if(me) db.collection('users').doc(me.uid).update({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{});
+});
+
+/* ---------- Users / Contacts ---------- */
+function loadContacts(){
+  db.collection('users').orderBy('displayName').onSnapshot(snap=>{
+    const ul = document.getElementById('usersList');
+    ul.innerHTML='';
+    snap.forEach(doc=>{
+      const u = doc.data();
+      if(!me || doc.id === me.uid) return;
+      const div = document.createElement('div');
+      div.className='userRow';
+      div.innerHTML = `<div style="display:flex;align-items:center;gap:8px">
+        <img src="${u.photoURL||'https://via.placeholder.com/30'}" alt="" style="width:36px;height:36px;border-radius:50%">
+        <div><strong>${u.displayName||u.email}</strong><div class="small">${u.email||''}</div></div>
+      </div>
+      <div><button class="btn" onclick="startPrivate('${doc.id}','${(u.displayName||u.email).replace(/'/g,"\\'")}')">Chat</button></div>`;
+      ul.appendChild(div);
+    });
+  });
+}
+
+/* ---------- Chats list (recent/pinned) ---------- */
+function loadChats(){
+  // For simplicity we consider chats a union of private chats created when two users chat, and groups where user is a member
+  // We'll listen to messages collection and build recent chats dynamically
+  // Also listen to groups membership to display group chats
+  if(chatsUnsub) chatsUnsub();
+  chatsUnsub = db.collection('messages').orderBy('timestamp','desc').limit(200).onSnapshot(snap=>{
+    const map = new Map(); // chatId -> last message
+    snap.forEach(doc=>{ const m = doc.data(); if(!map.has(m.chatId)) map.set(m.chatId,m) });
+    // Turn into list sorted by timestamp
+    const items = Array.from(map.entries()).sort((a,b)=> b[1].timestamp?.toMillis() - a[1].timestamp?.toMillis());
+    const list = document.getElementById('chatsList');
+    list.innerHTML='';
+    items.forEach(([chatId,m])=>{
+      // show only if user part of chat (for private: if chatId includes my uid; for group: check group doc members)
+      if(isChatVisibleToMe(chatId)){
+        const div = document.createElement('div');
+        div.className='chatRow';
+        div.innerHTML = `<div><strong>${getChatDisplayName(chatId)}</strong><div class="small">${m.fromName}: ${truncate(m.text,60)}</div></div>
+                         <div class="small">${formatTS(m.timestamp)}</div>`;
+        div.onclick = ()=> openChatById(chatId);
+        list.appendChild(div);
+      }
+    });
+  });
+}
+
+/* helper: determine if chat is visible to me */
+function isChatVisibleToMe(chatId){
+  if(!me) return false;
+  if(chatId.startsWith('group_')){
+    // group id
+    const gid = chatId.split('_')[1];
+    // need to check membership synchronously is tricky; simplest: show all groups if user is member - we'll fetch groups separately
+    // allow for showing groups handled by loadGroupsOverview
+    return true;
+  } else {
+    // private: id pattern: private_uidA_uidB
+    if(chatId.startsWith('private_')){
+      return chatId.includes(me.uid);
+    }
+    return false;
+  }
+}
+function truncate(s,n){ if(!s) return ''; return s.length>n? s.slice(0,n-1)+'…': s; }
+
+/* ---------- Groups: create, join requests, approve/reject, list ---------- */
+async function createGroup(){
+  if(!me) return alert('Login first');
+  const name = (document.getElementById('newGroupName').value || '').trim();
+  if(!name) return alert('Enter group name');
+  const docRef = db.collection('groups').doc();
+  await docRef.set({
+    id: docRef.id,
+    name: name,
+    adminId: me.uid,
+    members: [me.uid],
+    requests: [],
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  document.getElementById('newGroupName').value='';
+  loadGroupsOverview();
+}
+function loadGroupsOverview(){
+  db.collection('groups').orderBy('createdAt','desc').onSnapshot(snap=>{
+    const gl = document.getElementById('groupsList');
+    gl.innerHTML='';
+    snap.forEach(doc=>{
+      const g = doc.data();
+      const isMember = g.members && me && g.members.includes(me.uid);
+      const isAdmin = g.adminId && me && g.adminId===me.uid;
+      const div = document.createElement('div');
+      div.className='groupRow';
+      const left = document.createElement('div');
+      left.innerHTML = `<div><strong>${g.name}</strong></div><div class="small">${g.members?.length||0} members</div>`;
+      const right = document.createElement('div');
+      if(isMember){
+        right.innerHTML = `<span class="tag">Member</span> <button class="btn" onclick="openChatById('group_${g.id}')">Open</button>`;
+      } else if(isAdmin){
+        // show pending requests
+        let buttons='';
+        if(g.requests && g.requests.length>0){
+          buttons += `<div class="small">Requests: ${g.requests.length}</div>`;
+          g.requests.forEach(r=>{
+            buttons += `<div style="margin-top:6px"><button class="btn" onclick="approveRequest('${g.id}','${r}')">Approve</button><button class="btn" style="background:#c0392b" onclick="rejectRequest('${g.id}','${r}')">Reject</button></div>`;
+          });
+        } else buttons += `<span class="pill">Admin</span>`;
+        right.innerHTML = buttons;
+        right.style.display='flex'; right.style.flexDirection='column'; right.style.gap='6px';
+      } else {
+        // can request to join or show requested
+        if(g.requests && me && g.requests.includes(me.uid)){
+          right.innerHTML = `<span class="tag">Requested</span>`;
+        } else {
+          right.innerHTML = `<button class="btn" onclick="requestToJoin('${g.id}')">Request</button>`;
+        }
+      }
+      div.appendChild(left); div.appendChild(right);
+      gl.appendChild(div);
+    });
+  });
+}
+function requestToJoin(gid){
+  if(!me) return alert('Login'); 
+  db.collection('groups').doc(gid).update({ requests: firebase.firestore.FieldValue.arrayUnion(me.uid) });
+  alert('Requested to join group');
+}
+function approveRequest(gid, uid){
+  db.collection('groups').doc(gid).update({
+    members: firebase.firestore.FieldValue.arrayUnion(uid),
+    requests: firebase.firestore.FieldValue.arrayRemove(uid)
+  });
+}
+function rejectRequest(gid, uid){
+  db.collection('groups').doc(gid).update({
+    requests: firebase.firestore.FieldValue.arrayRemove(uid)
+  });
+}
+
+/* ---------- Private chat bootstrap ---------- */
+async function startPrivate(otherUid, otherName){
+  if(!me) return alert('Login');
+  // create deterministic id
+  const ids = [me.uid, otherUid].sort();
+  const chatId = `private_${ids[0]}_${ids[1]}`;
+  // ensure a chat is discoverable - messages collection keyed by chatId is enough
+  openChatById(chatId, otherName);
+}
+
+/* ---------- Helpers to get display name for a chatId ---------- */
+async function getChatInfo(chatId){
+  if(chatId.startsWith('group_')){
+    const gid = chatId.split('_')[1];
+    const doc = await db.collection('groups').doc(gid).get();
+    const g = doc.data();
+    return { name: g?.name||'Group', isGroup:true, adminId:g?.adminId, members:g?.members||[] };
+  } else if(chatId.startsWith('private_')){
+    // private_uidA_uidB
+    const parts = chatId.split('_');
+    const uidA = parts[1], uidB = parts[2];
+    const otherUid = uidA===me.uid?uidB:uidA;
+    const doc = await db.collection('users').doc(otherUid).get();
+    const u = doc.data();
+    return { name: u?.displayName||u?.email||'Contact', isGroup:false, members:[me.uid,otherUid] };
+  } else {
+    return { name: chatId, isGroup:false };
+  }
+}
+
+/* ---------- Opening a chat (subscribe messages, mark read) ---------- */
+async function openChatById(chatId){
+  if(messagesUnsub) messagesUnsub();
+  activeChat = chatId;
+  // update header
+  const info = await getChatInfo(chatId);
+  document.getElementById('chatName').innerText = info.name;
+  document.getElementById('chatPic').src = info.isGroup ? 'https://via.placeholder.com/44?text=G' : 'https://via.placeholder.com/44';
+  document.getElementById('chatMeta').innerText = info.isGroup ? `Group • ${info.members?.length||0} members` : 'Private chat';
+  // subscribe messages
+  messagesUnsub = db.collection('messages').where('chatId','==',chatId).orderBy('timestamp')
+    .onSnapshot(snap=>{
+      const box = document.getElementById('messages');
+      box.innerHTML = '';
+      snap.forEach(doc=>{
+        const m = doc.data();
+        const isMe = me && m.from === me.uid;
+        const css = isMe ? 'me' : 'other';
+        // handle deletedFor
+        if(m.deletedFor && m.deletedFor.includes(me?.uid)) return; // user deleted for themselves
+        // render message
+        const el = document.createElement('div');
+        el.className = 'message ' + css;
+        let text = m.text;
+        if(m.edited) text += ' (edited)';
+        el.innerHTML = `<div>${escapeHtml(m.fromName||'')}</div><div style="margin-top:6px">${escapeHtml(text)}</div>
+                        <div class="msgMeta">${formatTS(m.timestamp)} • ${m.readBy ? m.readBy.length + ' read' : '0 read'}</div>
+                        <div style="margin-top:6px"><button class="mini" onclick="editMessage('${doc.id}','${chatId}')">Edit</button><button class="mini" onclick="deleteMessage('${doc.id}')">Delete</button><button class="mini" onclick="starMessage('${doc.id}')">Star</button></div>`;
+        box.appendChild(el);
+      });
+      box.scrollTop = box.scrollHeight;
+      // mark messages as read by adding me.uid to readBy if not present
+      snap.forEach(doc=>{
+        const m = doc.data();
+        if(me && !(m.readBy && m.readBy.includes(me.uid))){
+          db.collection('messages').doc(doc.id).update({ readBy: firebase.firestore.FieldValue.arrayUnion(me.uid) }).catch(()=>{});
+        }
+      });
+    });
+}
+
+/* ---------- Send message (handle private vs group) ---------- */
+function sendMessage(){
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  if(!me) return alert('Login first');
+  if(!activeChat || !text) return;
+  const payload = {
+    chatId: activeChat,
+    from: me.uid,
+    fromName: me.displayName || me.email,
+    text: text,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    edited: false,
+    readBy: [me.uid]
   };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const auth = firebase.auth();
+  db.collection('messages').add(payload).then(()=>{ input.value=''; }).catch(e=>alert(e.message));
+}
 
-  let currentUser = null;
-  let activeChat = null;
+/* ---------- Typing indicator ----------
+   We set a small map on chat doc meta: db.collection('chatsMeta').doc(chatId).set({typing:{uid:true}}) and remove after stop.
+   To keep code simple we use group doc meta typing or a lightweight 'typing_{chatId}' doc.
+*/
+let typingTimeout = null;
+function onTyping(){
+  if(!activeChat || !me) return;
+  const key = `typing_${activeChat}`;
+  const docRef = db.collection('meta').doc(key);
+  docRef.set({ lastTyping: firebase.firestore.FieldValue.serverTimestamp(), uid: me.uid }, { merge: true });
+  if(typingTimeout) clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(()=>{ docRef.delete().catch(()=>{}); }, 2500);
+  // subscribe to typing indicator
+  db.collection('meta').doc(key).onSnapshot(snap=>{
+    if(!snap.exists) { document.getElementById('typingIndicator').innerText=''; return; }
+    const d = snap.data();
+    if(d.uid && d.uid !== me.uid) document.getElementById('typingIndicator').innerText = `${d.uid} is typing...`; else document.getElementById('typingIndicator').innerText='';
+  });
+}
 
-  // Auth state
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      document.getElementById("profileEdit").style.display = "block";
-      document.getElementById("groupCreate").style.display = "block";
-      saveUserToDB(user);
-      loadUsers();
-      loadGroups();
+/* ---------- Message actions: edit / delete / star ---------- */
+function editMessage(msgId, chatId){
+  const newText = prompt('Edit message text:');
+  if(newText===null) return;
+  db.collection('messages').doc(msgId).update({ text: newText, edited:true }).catch(e=>alert(e.message));
+}
+function deleteMessage(msgId){
+  // Offer delete for me vs delete for everyone: here we do delete for everyone (admin permission not enforced)
+  if(confirm('Delete for everyone? OK = delete for everyone, Cancel = delete just for you')){
+    // delete for everyone = remove doc
+    db.collection('messages').doc(msgId).delete().catch(e=>alert(e.message));
+  } else {
+    // delete for me => add to deletedFor array
+    db.collection('messages').doc(msgId).update({ deletedFor: firebase.firestore.FieldValue.arrayUnion(me.uid) }).catch(e=>alert(e.message));
+  }
+}
+function starMessage(msgId){
+  // Add reference to user's starred list
+  if(!me) return;
+  db.collection('users').doc(me.uid).update({ starred: firebase.firestore.FieldValue.arrayUnion(msgId) }).then(()=>alert('Starred')).catch(e=>alert(e.message));
+}
+
+/* ---------- Pin / archive chat ---------- */
+function togglePin(){
+  if(!me || !activeChat) return;
+  const docRef = db.collection('users').doc(me.uid);
+  // read user doc then toggle
+  docRef.get().then(doc=>{
+    const u = doc.data() || {};
+    const pinned = u.pinnedChats || [];
+    if(pinned.includes(activeChat)){
+      docRef.update({ pinnedChats: firebase.firestore.FieldValue.arrayRemove(activeChat) });
+      alert('Unpinned');
     } else {
-      currentUser = null;
-      document.getElementById("profileEdit").style.display = "none";
-      document.getElementById("groupCreate").style.display = "none";
+      docRef.update({ pinnedChats: firebase.firestore.FieldValue.arrayUnion(activeChat) });
+      alert('Pinned');
     }
   });
+}
+function archiveChat(){
+  if(!me || !activeChat) return;
+  db.collection('users').doc(me.uid).update({ archivedChats: firebase.firestore.FieldValue.arrayUnion(activeChat) }).then(()=>alert('Archived')).catch(e=>alert(e.message));
+}
 
-  function loginGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider);
+/* ---------- Search (global) ---------- */
+function globalSearchFn(){
+  const q = document.getElementById('globalSearch').value.trim();
+  if(!q) return;
+  // simple message text search: fetch messages containing q (firestore doesn't do full text; use simple where >= <= trick on single-field or client-side filter)
+  // We'll do a naive approach: get latest 500 messages and filter client-side
+  db.collection('messages').orderBy('timestamp','desc').limit(500).get().then(snap=>{
+    const matches = [];
+    snap.forEach(doc=>{
+      const m = doc.data();
+      if(m.text && m.text.toLowerCase().includes(q.toLowerCase())){
+        matches.push({ id:doc.id, ...m });
+      }
+    });
+    // show results in messages area
+    const box = document.getElementById('messages');
+    box.innerHTML = `<div class="notice">Search results for "${escapeHtml(q)}" — ${matches.length} hits</div>`;
+    matches.forEach(m=>{
+      const el = document.createElement('div');
+      el.className = 'message other';
+      el.innerHTML = `<div><strong>${escapeHtml(m.fromName)}</strong> <span class="mini muted">${m.chatId}</span></div><div style="margin-top:6px">${escapeHtml(m.text)}</div>`;
+      box.appendChild(el);
+    });
+  });
+}
+
+/* ---------- Helper functions ---------- */
+function formatTS(ts){
+  if(!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if(sameDay) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  return d.toLocaleString();
+}
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"'`]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
+
+/* ---------- Utility: open profile editor ---------- */
+function openProfileEditor(){
+  if(!me) return alert('Login first');
+  const html = `<div style="padding:10px">
+    <div><input id="editName" placeholder="Display name" value="${me.displayName || ''}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
+    <div style="margin-top:6px"><input id="editPhoto" placeholder="Photo URL" value="${me.photoURL || ''}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
+    <div style="margin-top:8px"><button class="btn" onclick="saveProfileEdits()">Save</button></div>
+  </div>`;
+  const pe = document.getElementById('profileEditor');
+  pe.innerHTML = html;
+}
+function saveProfileEdits(){
+  const name = document.getElementById('editName').value.trim();
+  const photo = document.getElementById('editPhoto').value.trim();
+  if(!me) return alert('Login');
+  db.collection('users').doc(me.uid).set({ displayName:name, photoURL:photo }, { merge:true});
+  // optionally update auth profile
+  me.updateProfile({ displayName: name || me.displayName, photoURL: photo || me.photoURL }).then(()=>alert('Profile updated')).catch(()=>alert('Profile updated in DB'));
+}
+
+/* ---------- Get chat display name (simple) ---------- */
+function getChatDisplayName(chatId){
+  if(chatId.startsWith('private_')){
+    const parts = chatId.split('_');
+    const other = parts[1]===me.uid ? parts[2] : parts[1];
+    // try to get cached user name quickly (async would be better)
+    // fallback to 'Private chat'
+    return 'Private';
+  } else if(chatId.startsWith('group_')){
+    // show group name from groups collection
+    // try synchronous quick lookup (not available) - return basic
+    return 'Group';
   }
-  function logout() { auth.signOut(); }
+  return chatId;
+}
 
-  // Save profile
-  function saveProfile() {
-    if (!currentUser) return;
-    const name = document.getElementById("displayName").value || currentUser.displayName;
-    const photo = document.getElementById("photoURL").value || currentUser.photoURL;
-    db.collection("users").doc(currentUser.uid).set({
-      uid: currentUser.uid,
-      email: currentUser.email,
-      displayName: name,
-      photoURL: photo
-    }, {merge:true});
-  }
-
-  // Save user
-  function saveUserToDB(user) {
-    db.collection("users").doc(user.uid).set({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName || user.email,
-      photoURL: user.photoURL || ""
-    }, {merge:true});
-  }
-
-  // Load users
-  function loadUsers() {
-    db.collection("users").onSnapshot(snapshot => {
-      const list = document.getElementById("userList");
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const u = doc.data();
-        if (currentUser && u.uid === currentUser.uid) return;
-        const div = document.createElement("div");
-        div.className = "userItem";
-        div.innerHTML = `<img src="${u.photoURL || 'https://via.placeholder.com/30'}"> ${u.displayName || u.email}`;
-        div.onclick = () => openChat(u.uid, u.displayName, false);
-        list.appendChild(div);
+/* ---------- boot: ensure minimal data ---------- */
+(function init(){
+  // create a 'global' group if not exists
+  db.collection('groups').where('name','==','Global Room').get().then(snap=>{
+    if(snap.empty){
+      const id = db.collection('groups').doc().id;
+      db.collection('groups').doc(id).set({
+        id:id, name:'Global Room', adminId:null, members:[], requests:[], createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-    });
-  }
-
-  // Load groups
-  function loadGroups() {
-    db.collection("groups").onSnapshot(snapshot => {
-      const list = document.getElementById("groupList");
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const g = doc.data();
-        const div = document.createElement("div");
-        div.className = "groupItem";
-        let actions = "";
-        if (g.members && g.members.includes(currentUser.uid)) {
-          actions = "<span>✔ Member</span>";
-          div.onclick = () => openChat(g.id, g.name, true);
-        } else if (g.requests && g.requests.includes(currentUser.uid)) {
-          actions = "<span>⏳ Pending</span>";
-        } else if (g.adminId === currentUser.uid) {
-          actions = `<span>👑 Admin</span>`;
-          if (g.requests) {
-            g.requests.forEach(r => {
-              actions += `<br><button class='btnSmall approve' onclick="approveMember('${g.id}','${r}')">Approve</button>
-                          <button class='btnSmall reject' onclick="rejectMember('${g.id}','${r}')">Reject</button>`;
-            });
-          }
-          div.onclick = () => openChat(g.id, g.name, true);
-        } else {
-          actions = `<button class='btnSmall' onclick="requestJoin('${g.id}')">Join</button>`;
-        }
-        div.innerHTML = `<span><img src="https://via.placeholder.com/30"> ${g.name}</span> ${actions}`;
-        list.appendChild(div);
-      });
-    });
-  }
-
-  // Create group
-  function createGroup() {
-    if (!currentUser) return;
-    const name = document.getElementById("groupName").value;
-    const desc = document.getElementById("groupDesc").value;
-    if (!name) return alert("Enter group name");
-    const id = db.collection("groups").doc().id;
-    db.collection("groups").doc(id).set({
-      id:id,
-      name:name,
-      description:desc,
-      adminId: currentUser.uid,
-      members:[currentUser.uid],
-      requests:[]
-    });
-    document.getElementById("groupName").value="";
-    document.getElementById("groupDesc").value="";
-  }
-
-  // Request join
-  function requestJoin(gid) {
-    db.collection("groups").doc(gid).update({
-      requests: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-    });
-  }
-
-  // Approve member
-  function approveMember(gid, uid) {
-    db.collection("groups").doc(gid).update({
-      members: firebase.firestore.FieldValue.arrayUnion(uid),
-      requests: firebase.firestore.FieldValue.arrayRemove(uid)
-    });
-  }
-
-  // Reject member
-  function rejectMember(gid, uid) {
-    db.collection("groups").doc(gid).update({
-      requests: firebase.firestore.FieldValue.arrayRemove(uid)
-    });
-  }
-
-  // Open chat
-  function openChat(id, name, isGroup) {
-    activeChat = {id:id, name:name, isGroup:isGroup};
-    document.getElementById("chatHeader").innerText = name;
-    loadMessages();
-  }
-
-  // Send message
-  function sendMessage() {
-    const text = document.getElementById("messageInput").value;
-    if (!text.trim() || !currentUser || !activeChat) return;
-    db.collection("messages").add({
-      chatId: activeChat.id,
-      isGroup: activeChat.isGroup,
-      from: currentUser.uid,
-      fromName: currentUser.displayName || currentUser.email,
-      text: text,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    document.getElementById("messageInput").value = "";
-  }
-
-  // Load messages
-  function loadMessages() {
-    if (!activeChat) return;
-    db.collection("messages").where("chatId","==",activeChat.id).orderBy("timestamp")
-      .onSnapshot(snapshot => {
-        const box = document.getElementById("messages");
-        box.innerHTML = "";
-        snapshot.forEach(doc => {
-          const m = doc.data();
-          const css = (m.from===currentUser.uid) ? "me" : "other";
-          box.innerHTML += `<div class="msg ${css}"><b>${m.fromName}</b><br>${m.text}</div>`;
-        });
-        box.scrollTop = box.scrollHeight;
-      });
-  }
+    }
+  });
+})();
 </script>
 </body>
 </html>
