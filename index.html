@@ -3,173 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp Clone - Private Chat</title>
+  <title>Blogger Chat App</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
       background: #f0f2f5;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
     }
-    #app {
-      width: 100%;
-      max-width: 800px;
-      height: 600px;
-      display: flex;
-      background: #fff;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    header {
+      background: #075e54;
+      color: white; padding: 10px;
+      text-align: center;
     }
-    #userList {
-      width: 30%;
+    #container {
+      display: flex;
+      height: 90vh;
+    }
+    #users {
+      width: 25%; background: #fff;
       border-right: 1px solid #ddd;
-      background: #ededed;
       overflow-y: auto;
     }
-    #userList h3 {
-      margin: 0;
-      padding: 10px;
-      background: #075e54;
-      color: #fff;
-      text-align: center;
-    }
-    .user {
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      cursor: pointer;
-      border-bottom: 1px solid #ddd;
-    }
-    .user img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-    .user:hover {
-      background: #d3d3d3;
-    }
-    #chatArea {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    #chatHeader {
-      background: #075e54;
-      color: #fff;
-      padding: 10px;
-      text-align: center;
+    #chat {
+      width: 75%; display: flex; flex-direction: column;
     }
     #messages {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-      background: #e5ddd5;
+      flex: 1; padding: 10px;
+      overflow-y: auto; background: #e5ddd5;
     }
     .msg {
-      display: flex;
-      margin: 5px 0;
-      align-items: flex-end;
-    }
-    .msg img {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      margin: 0 5px;
-    }
-    .bubble {
-      padding: 8px 12px;
-      border-radius: 15px;
+      margin: 5px 0; padding: 8px;
+      border-radius: 8px;
       max-width: 70%;
-      word-wrap: break-word;
     }
-    .me {
-      margin-left: auto;
-      flex-direction: row-reverse;
-    }
-    .me .bubble {
-      background: #dcf8c6;
-    }
-    .other .bubble {
-      background: #fff;
-    }
-    #chatInput {
+    .me { background: #dcf8c6; margin-left: auto; }
+    .other { background: #fff; margin-right: auto; }
+    #inputBox {
       display: flex;
-      border-top: 1px solid #ddd;
-      padding: 5px;
-    }
-    #chatInput input {
-      flex: 1;
       padding: 10px;
-      border: none;
-      outline: none;
+      background: #f0f0f0;
     }
-    #chatInput button {
-      background: #075e54;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      cursor: pointer;
+    #inputBox input {
+      flex: 1; padding: 8px;
+      border: 1px solid #ccc; border-radius: 5px;
     }
-    #authButtons {
+    #inputBox button {
+      margin-left: 5px; padding: 8px 12px;
+      background: #128c7e; color: white;
+      border: none; border-radius: 5px;
+    }
+    #profile {
+      padding: 10px; border-bottom: 1px solid #ddd;
       text-align: center;
-      margin: 10px 0;
     }
-    #authButtons button {
-      margin: 5px;
-      padding: 8px 12px;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-      background: #25d366;
-      color: #fff;
-      font-weight: bold;
-    }
-    #logoutBtn {
-      background: #ff3b30 !important;
+    #profile img {
+      width: 60px; height: 60px; border-radius: 50%;
     }
   </style>
 </head>
 <body>
-
-<div>
-  <div id="authButtons">
-    <button onclick="loginGoogle()">Login with Google</button>
-    <button id="logoutBtn" onclick="logout()">Logout</button>
-  </div>
-  <div id="app" style="display:none;">
-    <div id="userList">
-      <h3>Users</h3>
-      <div id="users"></div>
+  <header>
+    <h2>Blogger Chat App</h2>
+    <button onclick="loginGoogle()">Login</button>
+    <button onclick="logout()">Logout</button>
+  </header>
+  <div id="container">
+    <div id="users">
+      <div id="profile">
+        <img id="profilePic" src="https://via.placeholder.com/60" alt="Profile">
+        <p id="profileName">Guest</p>
+        <input type="text" id="statusInput" placeholder="Set status">
+        <button onclick="updateProfile()">Update</button>
+      </div>
+      <h3 style="padding:5px;">Users</h3>
+      <div id="userList"></div>
+      <h3 style="padding:5px;">Groups</h3>
+      <div id="groupList"></div>
+      <input type="text" id="groupName" placeholder="New Group">
+      <button onclick="createGroup()">Create</button>
     </div>
-    <div id="chatArea">
-      <div id="chatHeader"><span id="chatWith">Select a user</span></div>
+    <div id="chat">
       <div id="messages"></div>
-      <div id="chatInput">
-        <input type="text" id="messageInput" placeholder="Type a message..." />
+      <div id="inputBox">
+        <input type="text" id="messageInput" placeholder="Type a message...">
         <button onclick="sendMessage()">Send</button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 
-<script>
-  // Firebase Config
+  <script>
   const firebaseConfig = {
     apiKey: "AIzaSyBo2LX4YxwdZ6UMoo4TchkzPA5HjkSM7qQ",
     authDomain: "chat-da614.firebaseapp.com",
     projectId: "chat-da614",
-    storageBucket: "chat-da614.appspot.com",
+    storageBucket: "chat-da614.firebasestorage.app",
     messagingSenderId: "14850718256",
     appId: "1:14850718256:web:868f51a8123953e8bc0bf5",
     measurementId: "G-VYCPWGX316"
@@ -180,110 +112,117 @@
   const auth = firebase.auth();
 
   let currentUser = null;
-  let currentChatId = null;
-  let unsubscribeMessages = null;
+  let currentChat = "global"; // default group chat
 
-  const usersDiv = document.getElementById("users");
-  const messagesDiv = document.getElementById("messages");
-  const chatWith = document.getElementById("chatWith");
-  const input = document.getElementById("messageInput");
-
-  // Auth state listener
+  // ---------- AUTH ----------
+  function loginGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider);
+  }
+  function logout() {
+    auth.signOut();
+  }
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
-      document.getElementById("app").style.display = "flex";
-      saveUser(user);
+      document.getElementById("profileName").innerText = user.displayName;
+      document.getElementById("profilePic").src = user.photoURL || "https://via.placeholder.com/60";
+      db.collection("users").doc(user.uid).set({
+        name: user.displayName,
+        email: user.email,
+        photo: user.photoURL,
+        status: "Online"
+      });
       loadUsers();
+      loadGroups();
+      loadMessages(currentChat);
     } else {
       currentUser = null;
-      document.getElementById("app").style.display = "none";
+      document.getElementById("profileName").innerText = "Guest";
+      document.getElementById("messages").innerHTML = "";
     }
   });
 
-  // Save user in Firestore
-  function saveUser(user) {
-    db.collection("users").doc(user.uid).set({
-      name: user.displayName,
-      email: user.email,
-      photo: user.photoURL
-    }, { merge: true });
+  // ---------- PROFILE ----------
+  function updateProfile() {
+    const status = document.getElementById("statusInput").value;
+    if (currentUser) {
+      db.collection("users").doc(currentUser.uid).update({ status: status });
+    }
   }
 
-  // Load all users
+  // ---------- USERS ----------
   function loadUsers() {
     db.collection("users").onSnapshot(snapshot => {
-      usersDiv.innerHTML = "";
+      const userList = document.getElementById("userList");
+      userList.innerHTML = "";
       snapshot.forEach(doc => {
-        const u = doc.data();
-        if (currentUser && u.email !== currentUser.email) {
-          usersDiv.innerHTML += `
-            <div class="user" onclick="openChat('${doc.id}','${u.name}','${u.email}','${u.photo}')">
-              <img src="${u.photo}" alt="DP"> ${u.name}
-            </div>`;
+        let user = doc.data();
+        if (doc.id !== currentUser.uid) {
+          userList.innerHTML += `<p onclick="openChat('${doc.id}','${user.name}')">${user.name} - ${user.status || ''}</p>`;
         }
       });
     });
   }
 
-  // Open chat with a user
-  function openChat(uid, name, email, photo) {
-    chatWith.textContent = "Chat with " + name;
-    const myEmail = currentUser.email;
-    currentChatId = myEmail < email ? `${myEmail}_${email}` : `${email}_${myEmail}`;
+  // ---------- GROUPS ----------
+  function createGroup() {
+    const gName = document.getElementById("groupName").value;
+    if (gName.trim() !== "") {
+      db.collection("groups").add({
+        name: gName,
+        createdBy: currentUser.uid
+      });
+      document.getElementById("groupName").value = "";
+    }
+  }
+  function loadGroups() {
+    db.collection("groups").onSnapshot(snapshot => {
+      const groupList = document.getElementById("groupList");
+      groupList.innerHTML = `<p onclick="openChat('global','Group Chat')">🌍 Global Chat</p>`;
+      snapshot.forEach(doc => {
+        let group = doc.data();
+        groupList.innerHTML += `<p onclick="openChat('group-${doc.id}','${group.name}')">👥 ${group.name}</p>`;
+      });
+    });
+  }
 
-    if (unsubscribeMessages) unsubscribeMessages();
+  // ---------- CHAT ----------
+  function openChat(chatId, name) {
+    currentChat = chatId;
+    document.getElementById("messages").innerHTML = `<h4>Chat with ${name}</h4>`;
+    loadMessages(chatId);
+  }
 
-    unsubscribeMessages = db.collection("chats")
-      .doc(currentChatId).collection("messages")
+  function loadMessages(chatId) {
+    db.collection("messages")
+      .where("chatId","==",chatId)
       .orderBy("timestamp")
       .onSnapshot(snapshot => {
-        messagesDiv.innerHTML = "";
+        const msgDiv = document.getElementById("messages");
+        msgDiv.innerHTML = "";
         snapshot.forEach(doc => {
-          const msg = doc.data();
-          const isMe = msg.email === myEmail;
-          const cssClass = isMe ? "me" : "other";
-          const photo = msg.photo || "https://via.placeholder.com/32";
-          messagesDiv.innerHTML += `
-            <div class="msg ${cssClass}">
-              <img src="${photo}" alt="DP">
-              <div class="bubble"><b>${msg.user}</b><br>${msg.text}</div>
-            </div>`;
+          let msg = doc.data();
+          let cssClass = (msg.uid === currentUser.uid) ? "me" : "other";
+          msgDiv.innerHTML += `<div class="msg ${cssClass}"><b>${msg.user}:</b> ${msg.text}</div>`;
         });
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        msgDiv.scrollTop = msgDiv.scrollHeight;
       });
   }
 
-  // Send message
   function sendMessage() {
-    if (!currentChatId) {
-      alert("Select a user first!");
-      return;
-    }
-    const text = input.value;
-    if (text.trim() !== "") {
-      db.collection("chats").doc(currentChatId).collection("messages").add({
+    const text = document.getElementById("messageInput").value;
+    if (text.trim() !== "" && currentUser) {
+      db.collection("messages").add({
+        chatId: currentChat,
+        uid: currentUser.uid,
         user: currentUser.displayName,
-        email: currentUser.email,
-        photo: currentUser.photoURL,
         text: text,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
-      input.value = "";
+      document.getElementById("messageInput").value = "";
     }
   }
-
-  // Login with Google
-  function loginGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider);
-  }
-
-  // Logout
-  function logout() {
-    auth.signOut();
-  }
-</script>
-
+  </script>
 </body>
 </html>
