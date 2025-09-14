@@ -39,21 +39,29 @@
       background: #e5ddd5;
     }
     .msg {
-      margin: 5px 0;
+      display: flex;
+      align-items: flex-start;
+      margin: 8px 0;
+      clear: both;
+    }
+    .msg img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .bubble {
       padding: 8px 12px;
       border-radius: 15px;
       max-width: 70%;
-      clear: both;
+      word-wrap: break-word;
     }
-    .me {
+    .me .bubble {
       background: #dcf8c6;
-      float: right;
-      text-align: right;
+      margin-left: auto;
     }
-    .other {
+    .other .bubble {
       background: #fff;
-      float: left;
-      text-align: left;
     }
     #chatInput {
       display: flex;
@@ -112,7 +120,7 @@
   </div>
 </div>
 
-<!-- Firebase SDKs -->
+<!-- Firebase SDKs (v8 for Blogger compatibility) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -123,7 +131,7 @@
     apiKey: "AIzaSyBo2LX4YxwdZ6UMoo4TchkzPA5HjkSM7qQ",
     authDomain: "chat-da614.firebaseapp.com",
     projectId: "chat-da614",
-    storageBucket: "chat-da614.firebasestorage.app",
+    storageBucket: "chat-da614.appspot.com",
     messagingSenderId: "14850718256",
     appId: "1:14850718256:web:868f51a8123953e8bc0bf5",
     measurementId: "G-VYCPWGX316"
@@ -141,13 +149,7 @@
 
   // Auth state listener
   auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      console.log("Logged in:", user.email);
-    } else {
-      currentUser = null;
-      console.log("Logged out");
-    }
+    currentUser = user;
   });
 
   // Google Login
@@ -166,7 +168,9 @@
     const text = input.value;
     if (text.trim() !== "" && currentUser) {
       db.collection("messages").add({
-        user: currentUser.email,
+        user: currentUser.displayName,
+        email: currentUser.email,
+        photo: currentUser.photoURL,
         text: text,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -181,8 +185,17 @@
     messagesDiv.innerHTML = "";
     snapshot.forEach(doc => {
       const msg = doc.data();
-      const cssClass = currentUser && msg.user === currentUser.email ? "me" : "other";
-      messagesDiv.innerHTML += `<div class="msg ${cssClass}"><b>${msg.user}:</b><br>${msg.text}</div>`;
+      const isMe = currentUser && msg.email === currentUser.email;
+      const cssClass = isMe ? "me" : "other";
+      const photo = msg.photo || "https://via.placeholder.com/32"; // fallback
+      messagesDiv.innerHTML += `
+        <div class="msg ${cssClass}">
+          ${!isMe ? `<img src="${photo}" alt="DP">` : ""}
+          <div class="bubble">
+            <b>${msg.user}</b><br>${msg.text}
+          </div>
+          ${isMe ? `<img src="${photo}" alt="DP">` : ""}
+        </div>`;
     });
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   });
