@@ -59,6 +59,17 @@
     #profile img {
       width: 60px; height: 60px; border-radius: 50%;
     }
+    .list-section {
+      padding: 5px; font-weight: bold;
+      background: #f9f9f9; border-top: 1px solid #ddd;
+    }
+    .clickable {
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+    .clickable:hover {
+      background: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -72,16 +83,17 @@
       <div id="profile">
         <img id="profilePic" src="https://via.placeholder.com/60" alt="Profile">
         <p id="profileName">Guest</p>
-        <input type="text" id="statusInput" placeholder="Set status">
-        <button onclick="updateProfile()">Update</button>
       </div>
-      <h3 style="padding:5px;">Users</h3>
+
+      <div class="list-section">Users</div>
       <div id="userList"></div>
-      <h3 style="padding:5px;">Groups</h3>
+
+      <div class="list-section">Groups</div>
       <div id="groupList"></div>
       <input type="text" id="groupName" placeholder="New Group">
       <button onclick="createGroup()">Create</button>
     </div>
+
     <div id="chat">
       <div id="messages"></div>
       <div id="inputBox">
@@ -112,7 +124,7 @@
   const auth = firebase.auth();
 
   let currentUser = null;
-  let currentChat = "global"; // default group chat
+  let currentChat = "global"; // default chat room
 
   // ---------- AUTH ----------
   function loginGoogle() {
@@ -130,8 +142,7 @@
       db.collection("users").doc(user.uid).set({
         name: user.displayName,
         email: user.email,
-        photo: user.photoURL,
-        status: "Online"
+        photo: user.photoURL
       });
       loadUsers();
       loadGroups();
@@ -143,14 +154,6 @@
     }
   });
 
-  // ---------- PROFILE ----------
-  function updateProfile() {
-    const status = document.getElementById("statusInput").value;
-    if (currentUser) {
-      db.collection("users").doc(currentUser.uid).update({ status: status });
-    }
-  }
-
   // ---------- USERS ----------
   function loadUsers() {
     db.collection("users").onSnapshot(snapshot => {
@@ -158,8 +161,8 @@
       userList.innerHTML = "";
       snapshot.forEach(doc => {
         let user = doc.data();
-        if (doc.id !== currentUser.uid) {
-          userList.innerHTML += `<p onclick="openChat('${doc.id}','${user.name}')">${user.name} - ${user.status || ''}</p>`;
+        if (currentUser && doc.id !== currentUser.uid) {
+          userList.innerHTML += `<div class="clickable" onclick="openChat('${doc.id}','${user.name}')">👤 ${user.name}</div>`;
         }
       });
     });
@@ -168,21 +171,22 @@
   // ---------- GROUPS ----------
   function createGroup() {
     const gName = document.getElementById("groupName").value;
-    if (gName.trim() !== "") {
+    if (gName.trim() !== "" && currentUser) {
       db.collection("groups").add({
         name: gName,
-        createdBy: currentUser.uid
+        createdBy: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       document.getElementById("groupName").value = "";
     }
   }
   function loadGroups() {
-    db.collection("groups").onSnapshot(snapshot => {
+    db.collection("groups").orderBy("createdAt","asc").onSnapshot(snapshot => {
       const groupList = document.getElementById("groupList");
-      groupList.innerHTML = `<p onclick="openChat('global','Group Chat')">🌍 Global Chat</p>`;
+      groupList.innerHTML = `<div class="clickable" onclick="openChat('global','Global Chat')">🌍 Global Chat</div>`;
       snapshot.forEach(doc => {
         let group = doc.data();
-        groupList.innerHTML += `<p onclick="openChat('group-${doc.id}','${group.name}')">👥 ${group.name}</p>`;
+        groupList.innerHTML += `<div class="clickable" onclick="openChat('group-${doc.id}','${group.name}')">👥 ${group.name}</div>`;
       });
     });
   }
@@ -203,7 +207,7 @@
         msgDiv.innerHTML = "";
         snapshot.forEach(doc => {
           let msg = doc.data();
-          let cssClass = (msg.uid === currentUser.uid) ? "me" : "other";
+          let cssClass = (msg.uid === (currentUser ? currentUser.uid : "")) ? "me" : "other";
           msgDiv.innerHTML += `<div class="msg ${cssClass}"><b>${msg.user}:</b> ${msg.text}</div>`;
         });
         msgDiv.scrollTop = msgDiv.scrollHeight;
